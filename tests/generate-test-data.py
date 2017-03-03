@@ -1,50 +1,27 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import re
 import json
+import os.path
 
-# https://mathiasbynens.be/notes/javascript-encoding#surrogate-formulae
-# http://stackoverflow.com/a/13436167/96656
-def unisymbol(codePoint):
-	if codePoint >= 0x0000 and codePoint <= 0xFFFF:
-		return unichr(codePoint)
-	elif codePoint >= 0x010000 and codePoint <= 0x10FFFF:
-		highSurrogate = int((codePoint - 0x10000) / 0x400) + 0xD800
-		lowSurrogate = int((codePoint - 0x10000) % 0x400) + 0xDC00
-		return unichr(highSurrogate) + unichr(lowSurrogate)
-	else:
-		return 'Error'
+output_path = os.path.join(os.path.dirname(__file__), 'data.json')
 
-def hexify(codePoint):
-	return 'U+' + hex(codePoint)[2:].upper().zfill(6)
+with open(output_path, 'w') as f:
+	print('[', file=f)
 
-def writeFile(filename, contents):
-	print filename
-	with open(filename, 'w') as f:
-		f.write(contents.strip() + '\n')
+	for codepoint in range(0x000000, 0x10ffff + 1):
+		# Skip non-scalar values.
+		if 0xd800 <= codepoint <= 0xdfff:
+			continue
 
-data = []
-for codePoint in range(0x000000, 0x10FFFF + 1):
-	# Skip non-scalar values.
-	if codePoint >= 0xD800 and codePoint <= 0xDFFF:
-		continue
-	symbol = unisymbol(codePoint)
-	# http://stackoverflow.com/a/17199950/96656
-	bytes = symbol.encode('utf8').decode('latin1')
-	data.append({
-		'codePoint': codePoint,
-		'decoded': symbol,
-		'encoded': bytes
-	});
+		symbol = chr(codepoint)
+		encoded = symbol.encode('utf8').decode('latin1')
+		j = json.dumps({
+			'codePoint': codepoint,
+			'decoded': symbol,
+			'encoded': encoded,
+		})
+		fmt = '\t{}' if codepoint == 0x10ffff else '\t{},'
 
-jsonData = json.dumps(data, sort_keys=False, indent=2, separators=(',', ': '))
-# Use tabs instead of double spaces for indentation
-jsonData = jsonData.replace('  ', '\t')
-# Escape hexadecimal digits in escape sequences
-jsonData = re.sub(
-	r'\\u([a-fA-F0-9]{4})',
-	lambda match: r'\u{}'.format(match.group(1).upper()),
-	jsonData
-)
+		print(fmt.format(j), file=f)
 
-writeFile('data.json', jsonData)
+	print(']', file=f)
