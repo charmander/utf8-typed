@@ -25,15 +25,9 @@
 		"utf8.js"
 	],
 	"scripts": {
-		"test": "node tests/tests.js"
+		"test": "tap tests/tests.js"
 	},
 	"devDependencies": {
-		"coveralls": "^2.11.14",
-		"grunt": "^1.0.1",
-		"grunt-shell": "^1.1.2",
-		"istanbul": "^0.4.5",
-		"qunit-extras": "^1.4.2",
-		"qunitjs": "~1.11.0",
-		"requirejs": "^2.3.2"
+		"tap": "10.3.0"
 	}
 }
