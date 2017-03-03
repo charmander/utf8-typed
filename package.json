@@ -1,9 +1,7 @@
 {
-	"name": "utf8",
-	"version": "2.1.2",
+	"name": "utf8-typed",
+	"version": "1.0.0",
 	"description": "A well-tested UTF-8 encoder/decoder written in JavaScript.",
-	"homepage": "https://mths.be/utf8js",
-	"main": "utf8.js",
 	"keywords": [
 		"charset",
 		"encoding",
@@ -11,21 +9,16 @@
 		"utf8"
 	],
 	"license": "MIT",
-	"author": {
-		"name": "Mathias Bynens",
-		"url": "https://mathiasbynens.be/"
-	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/mathiasbynens/utf8.js.git"
+		"url": "https://github.com/charmander/utf8-typed"
 	},
-	"bugs": "https://github.com/mathiasbynens/utf8.js/issues",
+	"bugs": "https://github.com/charmander/utf8-typed/issues",
 	"files": [
-		"LICENSE-MIT.txt",
-		"utf8.js"
+		"index.js"
 	],
 	"scripts": {
-		"test": "tap tests/tests.js"
+		"test": "tap test/index.js"
 	},
 	"devDependencies": {
 		"tap": "10.3.0"
