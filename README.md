@@ -9,7 +9,7 @@ Feel free to fork if you see possible improvements!
 Via [npm][]:
 
 ```shellsession
-$ npm install utf8
+$ npm install utf8-typed
 ```
 
 ## API
