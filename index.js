@@ -58,42 +58,70 @@ function checkScalarValue(codePoint) {
 /*--------------------------------------------------------------------------*/
 
 function createByte(codePoint, shift) {
-	return stringFromCharCode(((codePoint >> shift) & 0x3F) | 0x80);
+	return ((codePoint >> shift) & 0x3F) | 0x80;
 }
 
-function encodeCodePoint(codePoint) {
-	if ((codePoint & 0xFFFFFF80) == 0) { // 1-byte sequence
-		return stringFromCharCode(codePoint);
+function getUtf8Length(codePoint) {
+	if ((codePoint & 0xFFFFFF80) == 0) {
+		return 1;
 	}
-	var symbol = '';
+	else if ((codePoint & 0xFFFFF800) == 0) {
+		return 2;
+	}
+	else if ((codePoint & 0xFFFF0000) == 0) {
+		checkScalarValue(codePoint);
+		return 3;
+	}
+	else {
+		return 4;
+	}
+}
+
+function encodeCodePoint(buffer, index, codePoint) {
+	if ((codePoint & 0xFFFFFF80) == 0) { // 1-byte sequence
+		buffer[index] = codePoint;
+		return 1;
+	}
+
+	var length;
+
 	if ((codePoint & 0xFFFFF800) == 0) { // 2-byte sequence
-		symbol = stringFromCharCode(((codePoint >> 6) & 0x1F) | 0xC0);
+		length = 2;
+		buffer[index++] = ((codePoint >> 6) & 0x1F) | 0xC0;
 	}
 	else if ((codePoint & 0xFFFF0000) == 0) { // 3-byte sequence
+		length = 3;
 		checkScalarValue(codePoint);
-		symbol = stringFromCharCode(((codePoint >> 12) & 0x0F) | 0xE0);
-		symbol += createByte(codePoint, 6);
+		buffer[index++] = ((codePoint >> 12) & 0x0F) | 0xE0;
+		buffer[index++] = createByte(codePoint, 6);
 	}
-	else if ((codePoint & 0xFFE00000) == 0) { // 4-byte sequence
-		symbol = stringFromCharCode(((codePoint >> 18) & 0x07) | 0xF0);
-		symbol += createByte(codePoint, 12);
-		symbol += createByte(codePoint, 6);
+	else { // 4-byte sequence
+		length = 4;
+		buffer[index++] = ((codePoint >> 18) & 0x07) | 0xF0;
+		buffer[index++] = createByte(codePoint, 12);
+		buffer[index++] = createByte(codePoint, 6);
 	}
-	symbol += stringFromCharCode((codePoint & 0x3F) | 0x80);
-	return symbol;
+	buffer[index] = (codePoint & 0x3F) | 0x80;
+	return length;
 }
 
 function utf8encode(string) {
 	var codePoints = ucs2decode(string);
-	var length = codePoints.length;
-	var index = -1;
-	var codePoint;
-	var byteString = '';
-	while (++index < length) {
-		codePoint = codePoints[index];
-		byteString += encodeCodePoint(codePoint);
+	var utf8Length = 0;
+	var i;
+
+	for (i = 0; i < codePoints.length; i++) {
+		utf8Length += getUtf8Length(codePoints[i]);
 	}
-	return byteString;
+
+	var encoded = new Uint8Array(utf8Length);
+	var offset = 0;
+
+	for (i = 0; i < codePoints.length; i++) {
+		offset += encodeCodePoint(encoded, offset, codePoints[i]);
+	}
+
+	return encoded;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -180,9 +208,9 @@ function decodeSymbol() {
 var byteArray;
 var byteCount;
 var byteIndex;
-function utf8decode(byteString) {
-	byteArray = ucs2decode(byteString);
-	byteCount = byteArray.length;
+function utf8decode(byteArray_) {
+	byteArray = byteArray_;
+	byteCount = byteArray_.length;
 	byteIndex = 0;
 	var codePoints = [];
 	var tmp;

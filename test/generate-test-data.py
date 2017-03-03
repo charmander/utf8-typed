@@ -14,11 +14,10 @@ with open(output_path, 'w') as f:
 			continue
 
 		symbol = chr(codepoint)
-		encoded = symbol.encode('utf8').decode('latin1')
 		j = json.dumps({
 			'codePoint': codepoint,
 			'decoded': symbol,
-			'encoded': encoded,
+			'encoded': list(symbol.encode('utf8')),
 		})
 		fmt = '\t{}' if codepoint == 0x10ffff else '\t{},'
 
