@@ -20,11 +20,11 @@ Encodes any given JavaScript string (`string`) as UTF-8, returning a UTF-8-encod
 
 ```js
 // U+00A9 COPYRIGHT SIGN; see http://codepoints.net/U+00A9
-utf8.encode('\xA9');
-// → '\xC2\xA9'
+utf8.encode('\xa9');
+// → '\xc2\xa9'
 // U+10001 LINEAR B SYLLABLE B038 E; see http://codepoints.net/U+10001
-utf8.encode('\uD800\uDC01');
-// → '\xF0\x90\x80\x81'
+utf8.encode('\ud800\udc01');
+// → '\xf0\x90\x80\x81'
 ```
 
 ### `utf8.decode(byteArray)`
@@ -33,10 +33,10 @@ Decodes any given UTF-8-encoded `Uint8Array` (`byteArray`) as UTF-8, and returns
 
 ```js
 utf8.decode(new Uint8Array([0xc2, 0xa9]));
-// → '\xA9'
+// → '\xa9'
 
 utf8.decode(new Uint8Array([0xf0, 0x90, 0x80, 0x81]));
-// → '\uD800\uDC01'
+// → '\ud800\udc01'
 // → U+10001 LINEAR B SYLLABLE B038 E
 ```
 

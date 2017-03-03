@@ -10,11 +10,11 @@ function ucs2decode(string) {
 	var counter = 0;
 	while (counter < string.length) {
 		var value = string.charCodeAt(counter++);
-		if (value >= 0xD800 && value <= 0xDBFF && counter < string.length) {
+		if (value >= 0xd800 && value <= 0xdbff && counter < string.length) {
 			// high surrogate, and there is a next character
 			var extra = string.charCodeAt(counter);
-			if ((extra & 0xFC00) == 0xDC00) { // low surrogate
-				output.push(((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000);
+			if ((extra & 0xfc00) === 0xdc00) { // low surrogate
+				output.push(((value & 0x3ff) << 10) + (extra & 0x3ff) + 0x10000);
 				counter++;
 			} else {
 				// unmatched surrogate; only append this code unit, in case the next
@@ -31,7 +31,7 @@ function ucs2decode(string) {
 function ucs2encode(value) {
 	if (value > 0xffff) {
 		value -= 0x10000;
-		return String.fromCharCode(value >>> 10 & 0x3FF | 0xD800) + String.fromCharCode(0xDC00 | value & 0x3FF);
+		return String.fromCharCode(value >>> 10 & 0x3ff | 0xd800) + String.fromCharCode(0xdc00 | value & 0x3ff);
 	} else {
 		return String.fromCharCode(value);
 	}
@@ -42,53 +42,48 @@ function checkScalarValue(codePoint) {
 }
 
 function createByte(codePoint, shift) {
-	return ((codePoint >> shift) & 0x3F) | 0x80;
+	return ((codePoint >> shift) & 0x3f) | 0x80;
 }
 
 function getUtf8Length(codePoint) {
-	if ((codePoint & 0xFFFFFF80) == 0) {
+	if ((codePoint & 0xffffff80) === 0) {
 		return 1;
-	}
-	else if ((codePoint & 0xFFFFF800) == 0) {
+	} else if ((codePoint & 0xfffff800) === 0) {
 		return 2;
-	}
-	else if ((codePoint & 0xFFFF0000) == 0) {
+	} else if ((codePoint & 0xffff0000) === 0) {
 		return 3;
-	}
-	else {
+	} else {
 		return 4;
 	}
 }
 
 function encodeCodePoint(buffer, index, codePoint) {
-	if ((codePoint & 0xFFFFFF80) == 0) { // 1-byte sequence
+	if ((codePoint & 0xffffff80) === 0) { // 1-byte sequence
 		buffer[index] = codePoint;
 		return 1;
 	}
 
 	var length;
 
-	if ((codePoint & 0xFFFFF800) == 0) { // 2-byte sequence
+	if ((codePoint & 0xfffff800) === 0) { // 2-byte sequence
 		length = 2;
-		buffer[index++] = ((codePoint >> 6) & 0x1F) | 0xC0;
-	}
-	else if ((codePoint & 0xFFFF0000) == 0) { // 3-byte sequence
+		buffer[index++] = ((codePoint >> 6) & 0x1f) | 0xc0;
+	} else if ((codePoint & 0xffff0000) === 0) { // 3-byte sequence
 		length = 3;
 
 		if (!checkScalarValue(codePoint)) {
 			codePoint = REPLACEMENT_CHARACTER;
 		}
 
-		buffer[index++] = ((codePoint >> 12) & 0x0F) | 0xE0;
+		buffer[index++] = ((codePoint >> 12) & 0x0f) | 0xe0;
 		buffer[index++] = createByte(codePoint, 6);
-	}
-	else { // 4-byte sequence
+	} else { // 4-byte sequence
 		length = 4;
-		buffer[index++] = ((codePoint >> 18) & 0x07) | 0xF0;
+		buffer[index++] = ((codePoint >> 18) & 0x07) | 0xf0;
 		buffer[index++] = createByte(codePoint, 12);
 		buffer[index++] = createByte(codePoint, 6);
 	}
-	buffer[index] = (codePoint & 0x3F) | 0x80;
+	buffer[index] = (codePoint & 0x3f) | 0x80;
 	return length;
 }
 

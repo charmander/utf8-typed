@@ -1,3 +1,5 @@
+/* global process */
+/* eslint global-require: 0 */
 'use strict';
 
 var assert = require('assert');
@@ -29,146 +31,148 @@ function assertSame(a, b, message) {
 var data = [
 	// 1-byte
 	{
-		'codePoint': 0x0000,
-		'decoded': '\0',
-		'encoded': [0]
+		codePoint: 0x0000,
+		decoded: '\0',
+		encoded: [0],
 	},
 	{
-		'codePoint': 0x005C,
-		'decoded': '\x5C',
-		'encoded': [0x5C]
+		codePoint: 0x005c,
+		decoded: '\x5c',
+		encoded: [0x5c],
 	},
 	{
-		'codePoint': 0x007F,
-		'decoded': '\x7F',
-		'encoded': [0x7F]
+		codePoint: 0x007f,
+		decoded: '\x7f',
+		encoded: [0x7f],
 	},
 
 	// 2-byte
 	{
-		'codePoint': 0x0080,
-		'decoded': '\x80',
-		'encoded': [0xC2, 0x80]
+		codePoint: 0x0080,
+		decoded: '\x80',
+		encoded: [0xc2, 0x80],
 	},
 	{
-		'codePoint': 0x05CA,
-		'decoded': '\u05CA',
-		'encoded': [0xD7, 0x8A]
+		codePoint: 0x05ca,
+		decoded: '\u05ca',
+		encoded: [0xd7, 0x8a],
 	},
 	{
-		'codePoint': 0x07FF,
-		'decoded': '\u07FF',
-		'encoded': [0xDF, 0xBF],
+		codePoint: 0x07ff,
+		decoded: '\u07ff',
+		encoded: [0xdf, 0xbf],
 	},
 
 	// 3-byte
 	{
-		'codePoint': 0x0800,
-		'decoded': '\u0800',
-		'encoded': [0xE0, 0xA0, 0x80],
+		codePoint: 0x0800,
+		decoded: '\u0800',
+		encoded: [0xe0, 0xa0, 0x80],
 	},
 	{
-		'codePoint': 0x2C3C,
-		'decoded': '\u2C3C',
-		'encoded': [0xE2, 0xB0, 0xBC]
+		codePoint: 0x2c3c,
+		decoded: '\u2c3c',
+		encoded: [0xe2, 0xb0, 0xbc],
 	},
 	{
-		'codePoint': 0xFFFF,
-		'decoded': '\uFFFF',
-		'encoded': [0xEF, 0xBF, 0xBF]
+		codePoint: 0xffff,
+		decoded: '\uffff',
+		encoded: [0xef, 0xbf, 0xbf],
 	},
+
 	// unmatched surrogate halves
-	// high surrogates: 0xD800 to 0xDBFF
+	// high surrogates: 0xd800 to 0xdbff
 	{
-		'codePoint': 0xD800,
-		'decoded': '\uD800',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xd800,
+		decoded: '\ud800',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
 		'description': 'High surrogate followed by another high surrogate',
-		'decoded': '\uD800\uD800',
-		'encoded': [0xEF, 0xBF, 0xBD, 0xEF, 0xBF, 0xBD],
-		'error': true
+		decoded: '\ud800\ud800',
+		encoded: [0xef, 0xbf, 0xbd, 0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
 		'description': 'High surrogate followed by a symbol that is not a surrogate',
-		'decoded': '\uD800A',
-		'encoded': [0xEF, 0xBF, 0xBD, 0x41],
-		'error': true
+		decoded: '\ud800A',
+		encoded: [0xef, 0xbf, 0xbd, 0x41],
+		'error': true,
 	},
 	{
 		'description': 'Unmatched high surrogate, followed by a surrogate pair, followed by an unmatched high surrogate',
-		'decoded': '\uD800\uD834\uDF06\uD800',
-		'encoded': [0xEF, 0xBF, 0xBD, 0xF0, 0x9D, 0x8C, 0x86, 0xEF, 0xBF, 0xBD],
-		'error': true
+		decoded: '\ud800\ud834\udf06\ud800',
+		encoded: [0xef, 0xbf, 0xbd, 0xf0, 0x9d, 0x8c, 0x86, 0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
-		'codePoint': 0xD9AF,
-		'decoded': '\uD9AF',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xd9af,
+		decoded: '\ud9af',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
-		'codePoint': 0xDBFF,
-		'decoded': '\uDBFF',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xdbff,
+		decoded: '\udbff',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
-	// low surrogates: 0xDC00 to 0xDFFF
+
+	// low surrogates: 0xdc00 to 0xdfff
 	{
-		'codePoint': 0xDC00,
-		'decoded': '\uDC00',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xdc00,
+		decoded: '\udc00',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
 		'description': 'Low surrogate followed by another low surrogate',
-		'decoded': '\uDC00\uDC00',
-		'encoded': [0xEF, 0xBF, 0xBD, 0xEF, 0xBF, 0xBD],
-		'error': true
+		decoded: '\udc00\udc00',
+		encoded: [0xef, 0xbf, 0xbd, 0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
 		'description': 'Low surrogate followed by a symbol that is not a surrogate',
-		'decoded': '\uDC00A',
-		'encoded': [0xEF, 0xBF, 0xBD, 0x41],
-		'error': true
+		decoded: '\udc00A',
+		encoded: [0xef, 0xbf, 0xbd, 0x41],
+		'error': true,
 	},
 	{
 		'description': 'Unmatched low surrogate, followed by a surrogate pair, followed by an unmatched low surrogate',
-		'decoded': '\uDC00\uD834\uDF06\uDC00',
-		'encoded': [0xEF, 0xBF, 0xBD, 0xF0, 0x9D, 0x8C, 0x86, 0xEF, 0xBF, 0xBD],
-		'error': true
+		decoded: '\udc00\ud834\udf06\udc00',
+		encoded: [0xef, 0xbf, 0xbd, 0xf0, 0x9d, 0x8c, 0x86, 0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
-		'codePoint': 0xDEEE,
-		'decoded': '\uDEEE',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xdeee,
+		decoded: '\udeee',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 	{
-		'codePoint': 0xDFFF,
-		'decoded': '\uDFFF',
-		'encoded': [0xEF, 0xBF, 0xBD],
-		'error': true
+		codePoint: 0xdfff,
+		decoded: '\udfff',
+		encoded: [0xef, 0xbf, 0xbd],
+		'error': true,
 	},
 
 	// 4-byte
 	{
-		'codePoint': 0x010000,
-		'decoded': '\uD800\uDC00',
-		'encoded': [0xF0, 0x90, 0x80, 0x80]
+		codePoint: 0x010000,
+		decoded: '\ud800\udc00',
+		encoded: [0xf0, 0x90, 0x80, 0x80],
 	},
 	{
-		'codePoint': 0x01D306,
-		'decoded': '\uD834\uDF06',
-		'encoded': [0xF0, 0x9D, 0x8C, 0x86]
+		codePoint: 0x01d306,
+		decoded: '\ud834\udf06',
+		encoded: [0xf0, 0x9d, 0x8c, 0x86],
 	},
 	{
-		'codePoint': 0x10FFF,
-		'decoded': '\uDBFF\uDFFF',
-		'encoded': [0xF4, 0x8F, 0xBF, 0xBF]
-	}
+		codePoint: 0x10fff,
+		decoded: '\udbff\udfff',
+		encoded: [0xf4, 0x8f, 0xbf, 0xbf],
+	},
 ];
 
 if (runExtendedTests) {
@@ -177,64 +181,64 @@ if (runExtendedTests) {
 
 var decodingErrors = [
 	{
-		'encoded': [237, 160, 128],
-		'decoded': '���'
+		encoded: [237, 160, 128],
+		decoded: '���',
 	},
 	{
-		'encoded': [237, 160, 128, 237, 160, 128],
-		'decoded': '������'
+		encoded: [237, 160, 128, 237, 160, 128],
+		decoded: '������',
 	},
 	{
-		'encoded': [237, 160, 128, 65],
-		'decoded': '���A'
+		encoded: [237, 160, 128, 65],
+		decoded: '���A',
 	},
 	{
-		'encoded': [237, 160, 128, 240, 157, 140, 134, 237, 160, 128],
-		'decoded': '���𝌆���'
+		encoded: [237, 160, 128, 240, 157, 140, 134, 237, 160, 128],
+		decoded: '���𝌆���',
 	},
 	{
-		'encoded': [237, 166, 175],
-		'decoded': '���'
+		encoded: [237, 166, 175],
+		decoded: '���',
 	},
 	{
-		'encoded': [237, 175, 191],
-		'decoded': '���'
+		encoded: [237, 175, 191],
+		decoded: '���',
 	},
 	{
-		'encoded': [237, 176, 128],
-		'decoded': '���'
+		encoded: [237, 176, 128],
+		decoded: '���',
 	},
 	{
-		'encoded': [237, 176, 128, 237, 176, 128],
-		'decoded': '������'
+		encoded: [237, 176, 128, 237, 176, 128],
+		decoded: '������',
 	},
 	{
-		'encoded': [237, 176, 128, 65],
-		'decoded': '���A'
+		encoded: [237, 176, 128, 65],
+		decoded: '���A',
 	},
 	{
-		'encoded': [237, 176, 128, 240, 157, 140, 134, 237, 176, 128],
-		'decoded': '���𝌆���'
+		encoded: [237, 176, 128, 240, 157, 140, 134, 237, 176, 128],
+		decoded: '���𝌆���',
 	},
 	{
-		'encoded': [237, 187, 174],
-		'decoded': '���'
+		encoded: [237, 187, 174],
+		decoded: '���',
 	},
 	{
-		'encoded': [237, 191, 191],
-		'decoded': '���'
+		encoded: [237, 191, 191],
+		decoded: '���',
 	},
 	{
-		'encoded': [233, 0, 0],
-		'decoded': '�\x00\x00'
+		encoded: [233, 0, 0],
+		decoded: '�\x00\x00',
 	},
 	{
-		'encoded': [240, 157],
-		'decoded': '�'
-	}
+		encoded: [240, 157],
+		decoded: '�',
+	},
 ];
 
-data.forEach(function(object) {
+data.forEach(function (object) {
 	var description = object.description || 'U+' + object.codePoint.toString(16).toUpperCase();
 
 	assertSame(
@@ -252,7 +256,7 @@ data.forEach(function(object) {
 	}
 });
 
-decodingErrors.forEach(function(object) {
+decodingErrors.forEach(function (object) {
 	assert.strictEqual(
 		utf8.decode(new Uint8Array(object.encoded)),
 		object.decoded,
