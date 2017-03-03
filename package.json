@@ -16,11 +16,5 @@
 	"bugs": "https://github.com/charmander/utf8-typed/issues",
 	"files": [
 		"index.js"
-	],
-	"scripts": {
-		"test": "tap test/index.js"
-	},
-	"devDependencies": {
-		"tap": "10.3.0"
-	}
+	]
 }

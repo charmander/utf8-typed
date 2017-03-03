@@ -1,26 +1,25 @@
 'use strict';
 
-var stringFromCharCode = String.fromCharCode;
+var REPLACEMENT_CHARACTER = 0xfffd;
+var REPLACEMENT_CHARACTER_1 = '\ufffd';
+var REPLACEMENT_CHARACTER_3 = '\ufffd\ufffd\ufffd';
 
 // Taken from https://mths.be/punycode
 function ucs2decode(string) {
 	var output = [];
 	var counter = 0;
-	var length = string.length;
-	var value;
-	var extra;
-	while (counter < length) {
-		value = string.charCodeAt(counter++);
-		if (value >= 0xD800 && value <= 0xDBFF && counter < length) {
+	while (counter < string.length) {
+		var value = string.charCodeAt(counter++);
+		if (value >= 0xD800 && value <= 0xDBFF && counter < string.length) {
 			// high surrogate, and there is a next character
-			extra = string.charCodeAt(counter++);
+			var extra = string.charCodeAt(counter);
 			if ((extra & 0xFC00) == 0xDC00) { // low surrogate
 				output.push(((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000);
+				counter++;
 			} else {
 				// unmatched surrogate; only append this code unit, in case the next
 				// code unit is the high surrogate of a surrogate pair
 				output.push(value);
-				counter--;
 			}
 		} else {
 			output.push(value);
@@ -29,33 +28,18 @@ function ucs2decode(string) {
 	return output;
 }
 
-// Taken from https://mths.be/punycode
-function ucs2encode(array) {
-	var length = array.length;
-	var index = -1;
-	var value;
-	var output = '';
-	while (++index < length) {
-		value = array[index];
-		if (value > 0xFFFF) {
-			value -= 0x10000;
-			output += stringFromCharCode(value >>> 10 & 0x3FF | 0xD800);
-			value = 0xDC00 | value & 0x3FF;
-		}
-		output += stringFromCharCode(value);
+function ucs2encode(value) {
+	if (value > 0xffff) {
+		value -= 0x10000;
+		return String.fromCharCode(value >>> 10 & 0x3FF | 0xD800) + String.fromCharCode(0xDC00 | value & 0x3FF);
+	} else {
+		return String.fromCharCode(value);
 	}
-	return output;
 }
 
 function checkScalarValue(codePoint) {
-	if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
-		throw Error(
-			'Lone surrogate U+' + codePoint.toString(16).toUpperCase() +
-			' is not a scalar value'
-		);
-	}
+	return codePoint < 0xd800 || codePoint > 0xdfff;
 }
-/*--------------------------------------------------------------------------*/
 
 function createByte(codePoint, shift) {
 	return ((codePoint >> shift) & 0x3F) | 0x80;
@@ -69,7 +53,6 @@ function getUtf8Length(codePoint) {
 		return 2;
 	}
 	else if ((codePoint & 0xFFFF0000) == 0) {
-		checkScalarValue(codePoint);
 		return 3;
 	}
 	else {
@@ -91,7 +74,11 @@ function encodeCodePoint(buffer, index, codePoint) {
 	}
 	else if ((codePoint & 0xFFFF0000) == 0) { // 3-byte sequence
 		length = 3;
-		checkScalarValue(codePoint);
+
+		if (!checkScalarValue(codePoint)) {
+			codePoint = REPLACEMENT_CHARACTER;
+		}
+
 		buffer[index++] = ((codePoint >> 12) & 0x0F) | 0xE0;
 		buffer[index++] = createByte(codePoint, 6);
 	}
@@ -124,100 +111,109 @@ function utf8encode(string) {
 	return encoded;
 }
 
-/*--------------------------------------------------------------------------*/
-
-function readContinuationByte() {
-	if (byteIndex >= byteCount) {
-		throw Error('Invalid byte index');
-	}
-
-	var continuationByte = byteArray[byteIndex] & 0xFF;
-	byteIndex++;
-
-	if ((continuationByte & 0xC0) == 0x80) {
-		return continuationByte & 0x3F;
-	}
-
-	// If we end up here, it’s not a continuation byte
-	throw Error('Invalid continuation byte');
+function isContinuation(byte) {
+	return (byte & 0xc0) === 0x80;
 }
 
-function decodeSymbol() {
-	var byte1;
-	var byte2;
-	var byte3;
-	var byte4;
-	var codePoint;
+function utf8decode(byteArray) {
+	var l = byteArray.length;
+	var result = '';
 
-	if (byteIndex > byteCount) {
-		throw Error('Invalid byte index');
-	}
+	for (var i = 0; i < l; i++) {
+		var c = byteArray[i];
+		var c2;
+		var c3;
+		var c4;
 
-	if (byteIndex == byteCount) {
-		return false;
-	}
+		if (c < 0x80) {
+			result += String.fromCharCode(c);
+		} else if ((c & 0xe0) === 0xc0) {
+			// 2-byte sequence
+			if (c < (0xc0 | 2)) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
 
-	// Read first byte
-	byte1 = byteArray[byteIndex] & 0xFF;
-	byteIndex++;
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c2 = byteArray[i + 1];
+			if (!isContinuation(c2)) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
 
-	// 1-byte sequence (no continuation bytes)
-	if ((byte1 & 0x80) == 0) {
-		return byte1;
-	}
+			result += String.fromCharCode((c & 0x1f) << 6 | (c2 & 0x3f));
+		} else if ((c & 0xf0) === 0xe0) {
+			// 3-byte sequence
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c2 = byteArray[i + 1];
+			if (!isContinuation(c2) || (c === 0xe0 && c2 < (0x80 | 0x20))) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
 
-	// 2-byte sequence
-	if ((byte1 & 0xE0) == 0xC0) {
-		byte2 = readContinuationByte();
-		codePoint = ((byte1 & 0x1F) << 6) | byte2;
-		if (codePoint >= 0x80) {
-			return codePoint;
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c3 = byteArray[i + 1];
+			if (!isContinuation(c3)) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
+
+			var codePoint = (c & 0x0f) << 12 | (c2 & 0x3f) << 6 | (c3 & 0x3f);
+
+			if (!checkScalarValue(codePoint)) {
+				result += REPLACEMENT_CHARACTER_3;
+				continue;
+			}
+
+			result += ucs2encode(codePoint);
+		} else if ((c & 0xf8) === 0xf0) {
+			// 4-byte sequence
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c2 = byteArray[i + 1];
+			if (!isContinuation(c2) || (c === 0xf0 && c2 < (0x80 | 0x10))) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
+
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c3 = byteArray[i + 1];
+			if (!isContinuation(c3)) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
+
+			if (i + 1 === l) {
+				return result + REPLACEMENT_CHARACTER_1;
+			}
+			c4 = byteArray[i + 1];
+			if (!isContinuation(c4)) {
+				result += REPLACEMENT_CHARACTER_1;
+				continue;
+			}
+			i++;
+
+			result += ucs2encode((c & 0x07) << 18 | (c2 & 0x3f) << 12 | (c3 & 0x3f) << 6 | (c4 & 0x3f));
 		} else {
-			throw Error('Invalid continuation byte');
+			result += REPLACEMENT_CHARACTER_1;
 		}
 	}
 
-	// 3-byte sequence (may include unpaired surrogates)
-	if ((byte1 & 0xF0) == 0xE0) {
-		byte2 = readContinuationByte();
-		byte3 = readContinuationByte();
-		codePoint = ((byte1 & 0x0F) << 12) | (byte2 << 6) | byte3;
-		if (codePoint >= 0x0800) {
-			checkScalarValue(codePoint);
-			return codePoint;
-		} else {
-			throw Error('Invalid continuation byte');
-		}
-	}
-
-	// 4-byte sequence
-	if ((byte1 & 0xF8) == 0xF0) {
-		byte2 = readContinuationByte();
-		byte3 = readContinuationByte();
-		byte4 = readContinuationByte();
-		codePoint = ((byte1 & 0x07) << 0x12) | (byte2 << 0x0C) |
-			(byte3 << 0x06) | byte4;
-		if (codePoint >= 0x010000 && codePoint <= 0x10FFFF) {
-			return codePoint;
-		}
-	}
-
-	throw Error('Invalid UTF-8 detected');
-}
-
-var byteArray;
-var byteCount;
-var byteIndex;
-function utf8decode(byteArray_) {
-	byteArray = byteArray_;
-	byteCount = byteArray_.length;
-	byteIndex = 0;
-	var codePoints = [];
-	var tmp;
-	while ((tmp = decodeSymbol()) !== false) {
-		codePoints.push(tmp);
-	}
-	return ucs2encode(codePoints);
+	return result;
 }
 
 exports.encode = utf8encode;
