@@ -21,10 +21,11 @@ Encodes any given JavaScript string (`string`) as UTF-8, returning a UTF-8-encod
 ```js
 // U+00A9 COPYRIGHT SIGN; see http://codepoints.net/U+00A9
 utf8.encode('\xa9');
-// → '\xc2\xa9'
+// → Uint8Array [ 194, 169 ]
+
 // U+10001 LINEAR B SYLLABLE B038 E; see http://codepoints.net/U+10001
 utf8.encode('\ud800\udc01');
-// → '\xf0\x90\x80\x81'
+// → Uint8Array [ 240, 144, 128, 129 ]
 ```
 
 ### `utf8.decode(byteArray)`
