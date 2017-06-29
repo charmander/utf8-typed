@@ -5,7 +5,7 @@ var REPLACEMENT_CHARACTER_1 = '\ufffd';
 var REPLACEMENT_CHARACTER_3 = '\ufffd\ufffd\ufffd';
 
 // Taken from https://mths.be/punycode
-function ucs2decode(string) {
+function utf16Decode(string) {
 	var output = [];
 	var counter = 0;
 	while (counter < string.length) {
@@ -28,13 +28,9 @@ function ucs2decode(string) {
 	return output;
 }
 
-function ucs2encode(value) {
-	if (value > 0xffff) {
-		value -= 0x10000;
-		return String.fromCharCode(value >>> 10 & 0x3ff | 0xd800) + String.fromCharCode(0xdc00 | value & 0x3ff);
-	} else {
-		return String.fromCharCode(value);
-	}
+function utf16Encode(value) {
+	value -= 0x10000;
+	return String.fromCharCode(value >>> 10 & 0x3ff | 0xd800) + String.fromCharCode(0xdc00 | value & 0x3ff);
 }
 
 function checkScalarValue(codePoint) {
@@ -87,8 +83,8 @@ function encodeCodePoint(buffer, index, codePoint) {
 	return length;
 }
 
-function utf8encode(string) {
-	var codePoints = ucs2decode(string);
+function utf8Encode(string) {
+	var codePoints = utf16Decode(string);
 	var utf8Length = 0;
 	var i;
 
@@ -110,7 +106,7 @@ function isContinuation(byte) {
 	return (byte & 0xc0) === 0x80;
 }
 
-function utf8decode(byteArray) {
+function utf8Decode(byteArray) {
 	var l = byteArray.length;
 	var result = '';
 
@@ -169,7 +165,9 @@ function utf8decode(byteArray) {
 				continue;
 			}
 
-			result += ucs2encode(codePoint);
+			result += codePoint >= 0x10000 ?
+				utf16Encode(codePoint) :
+				String.fromCharCode(codePoint);
 		} else if ((c & 0xf8) === 0xf0) {
 			// 4-byte sequence
 			if (i + 1 === l) {
@@ -202,7 +200,7 @@ function utf8decode(byteArray) {
 			}
 			i++;
 
-			result += ucs2encode((c & 0x07) << 18 | (c2 & 0x3f) << 12 | (c3 & 0x3f) << 6 | (c4 & 0x3f));
+			result += utf16Encode((c & 0x07) << 18 | (c2 & 0x3f) << 12 | (c3 & 0x3f) << 6 | (c4 & 0x3f));
 		} else {
 			result += REPLACEMENT_CHARACTER_1;
 		}
@@ -211,5 +209,5 @@ function utf8decode(byteArray) {
 	return result;
 }
 
-exports.encode = utf8encode;
-exports.decode = utf8decode;
+exports.encode = utf8Encode;
+exports.decode = utf8Decode;
