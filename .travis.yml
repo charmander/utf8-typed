@@ -6,5 +6,10 @@ node_js:
   - "6"
   - "8"
   - "9"
+before_script:
+  - tmp=$(mktemp --directory)
+  - bash -O dotglob -O extglob -c 'mv !(node_modules|test) "$1"/' bash "$tmp"
+  - pack=$(npm pack "$tmp")
+  - tar --strip-components=1 -x -v -f "$pack"
 script:
   - node test
